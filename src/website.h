@@ -1,0 +1,239 @@
+#ifndef WEBSITE_H
+#define WEBSITE_H
+
+const char webhtml[] PROGMEM = R"=====(
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Ledshed</title>
+    <style>
+        body {
+            background-color: #3b0e19;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            color: white;
+        }
+
+        .form {
+            display: grid;
+            grid-template-rows: repeat(5, 1fr);
+            grid-template-columns: 1fr 1fr;
+            grid-column: 1 / 3;
+        }
+
+        input[type=range] {
+            display: flex;
+            margin: auto;
+            padding: 20px;
+            font-size: 3rem;
+            justify-content: center;
+        }
+        input[type=button] {
+            padding: 20px;
+        }
+        .warmwhite {
+            background-color: rgb(255, 211, 89);
+        }
+
+        .response {
+            grid-column: 1 / 3;
+            align-self: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        p {
+            color: white;
+        }
+
+        @media only screen and (max-width : 1440px) and (max-height : 2560px) {
+            body {
+                background-color: #3b0e19;
+                font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
+            }
+            [name=container] {
+                display: grid;
+                grid-template-rows: repeat(1fr, 4);
+                grid-template-columns: 50% 50%;
+            }
+            input[type=range] {
+                
+                grid-column: span 2;
+                width: 60vw;
+                
+            }
+            input[type=button] {
+                /* grid-column: span 2; */
+                width: 20vw;
+
+            }
+            label {
+                margin:auto;
+                grid-column: span 2;
+            }
+            [name=eachled-buttons] {
+                display: grid;
+                grid-template-columns: repeat(1fr, 3);
+                grid-column: span 2;
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div name="container">
+        <label for="luminosity">Jasność</label>
+        <input name="luminosity" type="range" min="15" max="255" value="15" step="10">
+        <label for="r">RGB</label>
+        <input name="r" type="range" min="0" max="255" value="0" step="10">
+        <input name="g" type="range" min="0" max="255" value="0" step="10">
+        <input name="b" type="range" min="0" max="255" value="0" step="10">
+        <label for="eachled">Punkt</label> 
+        <input name="eachled" type="range" min="0" max="484" value="0">
+        <div name="eachled-buttons">
+            <input name="minus" type="button" value="-">
+            <input name="plus" type="button" value="+">
+            <input name="val" type="text" disabled value="0">
+        </div>
+        <label for="mod">Modulo</label> 
+        <input name="mod" type="range" min="0" max="105" value="0">
+        <div name="mod-buttons">
+            <input name="mod-minus" type="button" value="-">
+            <input name="mod-plus" type="button" value="+">
+            <input name="mod-val" type="text" disabled value="0">
+        </div>
+        <div name="ran-buttons">
+            <input name="ran-minus" type="button" value="r-">
+            <input name="ran-plus" type="button" value="r+">
+            <input name="ran-val" type="text" disabled value="0">
+        </div>
+        <input name="rainbow" type='button' value='&#127752'>
+        <input name="balls" type='button' value='&#9917'>
+        <input name="warmwhite" value="On" onclick="turnOn()" type='button'>
+        <input name="off" type='button' value='Off' >
+    </div>
+    <script>
+        const url = "http://192.168.69.215";
+
+        var luminosity = document.querySelector('input');
+        var r = document.querySelector('[name=r]');
+        var g = document.querySelector('[name=g]');
+        var b = document.querySelector('[name=b]');
+        var rainbow = document.querySelector('[name=rainbow]');
+        var balls = document.querySelector('[name=balls]');
+        var eachled = document.querySelector('[name=eachled]');
+        var plus = document.querySelector('[name=plus]');
+        var minus = document.querySelector('[name=minus]');
+        var val = document.querySelector('[name=val]');
+        var off = document.querySelector('[name=off]');
+        var mod = document.querySelector('[name=mod]');
+        var mod_plus = document.querySelector('[name=mod-plus]');
+        var mod_minus = document.querySelector('[name=mod-minus]');
+        var mod_val = document.querySelector('[name=mod-val]');
+        var ran_plus = document.querySelector('[name=ran-plus]');
+        var ran_minus = document.querySelector('[name=ran-minus]');
+        var ran_val = document.querySelector('[name=ran-val]');
+
+        var request = new XMLHttpRequest();
+
+        off.onclick = function() {
+            sendRequest('POST', '/off');
+        }
+
+        ran_plus.onclick = function() {
+            ran_val.value = Number(ran_val.value) + 1;
+            sendRequest('POST', '/mod', 'mod=' + mod.value + '&range=' + ran_val.value);
+        }
+        ran_minus.onclick = function() {
+            ran_val.value = ran_val.value - 1;
+            sendRequest('POST', '/mod', 'mod=' + mod.value + '&range=' + ran_val.value);
+        }
+
+        mod_plus.onclick = function() {
+            console.log(mod.value);
+            mod.value = Number(mod.value) + 1;
+            mod_val.value = mod.value;
+            sendRequest('POST', '/mod', 'mod=' + mod.value + '&range=' + ran_val.value);
+        }
+        mod_minus.onclick = function() {
+            mod.value -= 1;
+            mod_val.value = mod.value;
+            sendRequest('POST', '/mod', 'mod=' + mod.value + '&range=' + ran_val.value);
+        }
+
+        mod.oninput = function() {
+            mod_val.value = this.value;
+            sendRequest('POST', '/mod', 'mod=' + mod.value + '&range=' + ran_val.value);
+        }
+
+        plus.onclick = function() {
+            console.log(eachled.value);
+            eachled.value = Number(eachled.value) + 1;
+            val.value = eachled.value;
+            sendRequest('POST', '/point', 'point=' + eachled.value);
+        }
+        minus.onclick = function() {
+            eachled.value -= 1;
+            val.value = eachled.value;
+            sendRequest('POST', '/point', 'point=' + eachled.value);
+        }
+
+        eachled.oninput = function() {
+            val.value = this.value;
+            sendRequest('POST', '/point', 'point=' + eachled.value);
+        }
+
+        balls.onclick = function() {
+            sendRequest('GET', '/balls');
+        }
+
+        rainbow.onclick = function() {
+            sendRequest('POST', '/rainbow');
+        }
+
+        luminosity.oninput = function() {
+            sendRequest('POST', '/luminosity', 'value=' + this.value);
+        };
+
+        r.oninput = function() {
+            var params = 'r=' + r.value + '&g=' + g.value + '&b=' + b.value;
+            sendRequest('POST', '/rgb', params);
+        }
+        g.oninput = function() {
+            var params = 'r=' + r.value + '&g=' + g.value + '&b=' + b.value;
+            sendRequest('POST', '/rgb', params);
+        }
+        b.oninput = function() {
+            var params = 'r=' + r.value + '&g=' + g.value + '&b=' + b.value;
+            sendRequest('POST', '/rgb', params);
+        }
+
+        function turnOn() {
+            request.open("GET", url + "/warmwhite", true);
+            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            request.onreadystatechange = function() {
+                if(this.readyState == 4 && this.status == 200)
+                    console.log(this.response);
+            }
+            request.send();
+        }
+
+        function sendRequest(method, view, params) {
+            request.open(method, url + view, true);
+            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            request.onreadystatechange = function() {
+                if(this.readyState == 4 && this.status == 200)
+                    console.log(this.response);
+            }
+            request.send(params);
+        }
+    </script>
+</body>
+
+</html>
+)=====";
+
+#endif // WEBSITE_H
